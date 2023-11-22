@@ -9,7 +9,7 @@ build-docker-image-debug:
   tags:
     - debug
   before_script:
-    - docker login -u <your-username> -p <your-access-token> registry.gitlab.com
+    - docker login -u <your-username> -p <your-gitlab-access-token> registry.gitlab.com
   script:
     - COMMIT_HASH=$(git rev-parse --short HEAD)-dev
     - docker build -t <image-name> -f ./dockerfiles/android.Dockerfile .
@@ -42,7 +42,7 @@ build-docker-image-production:
   tags:
     - production
   before_script:
-    - docker login -u <your-username> -p <your-access-token> registry.gitlab.com
+    - docker login -u <your-username> -p <your-gitlab-access-token> registry.gitlab.com
   script:
     - COMMIT_HASH=$(git rev-parse --short HEAD)
     - docker build -t <image-name> -f ./dockerfiles/android.Dockerfile .
