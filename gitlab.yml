@@ -1,0 +1,102 @@
+stages:
+  - build-docker-image
+  - build-apk
+  - build-release-bundle
+  - docker-clean
+
+build-docker-image-debug:
+  stage: build-docker-image
+  tags:
+    - debug
+  before_script:
+    - docker login -u <your-username> -p <your-access-token> registry.gitlab.com
+  script:
+    - COMMIT_HASH=$(git rev-parse --short HEAD)-dev
+    - docker build -t <image-name> -f ./dockerfiles/android.Dockerfile .
+    - docker push <image-name>
+  only:
+    refs:
+      - dev
+
+build-apk-debug:
+  stage: build-apk
+  tags:
+    - debug
+  script:
+    - docker run -v $CI_PROJECT_DIR/apks:/usr/src/app/apks --name mobile-build-debug --env CMD_SCRIPT=debug.build.sh <image-name>
+    - sudo chown -R gitlab-runner:gitlab-runner $CI_PROJECT_DIR/apks
+    - sudo cp -r $CI_PROJECT_DIR/apks/app-debug.apk /apks/app-debug.apk
+  artifacts:
+    paths:
+      - apks/app-debug.apk
+  only:
+    refs:
+      - dev
+  cache:
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
+
+build-docker-image-production:
+  stage: build-docker-image
+  tags:
+    - production
+  before_script:
+    - docker login -u <your-username> -p <your-access-token> registry.gitlab.com
+  script:
+    - COMMIT_HASH=$(git rev-parse --short HEAD)
+    - docker build -t <image-name> -f ./dockerfiles/android.Dockerfile .
+    - docker push <image-name>
+  only:
+    refs:
+      - master
+
+release-bundle:
+  stage: build-release-bundle
+  tags:
+    - production
+  script:
+    - docker run -v $CI_PROJECT_DIR/apks:/usr/src/app/apks --name mobile-release --env CMD_SCRIPT=bundle.release.sh <image-name>
+    - sudo chown -R gitlab-runner:gitlab-runner $CI_PROJECT_DIR/apks
+    - sudo cp -r $CI_PROJECT_DIR/apks/app-release.aab /apks/app-release.aab
+  artifacts:
+    paths:
+      - apks/app-release.aab
+  only:
+    refs:
+      - master
+  cache:
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
+  when: on_success
+
+build-production-apk:
+  stage: build-release-bundle
+  tags:
+    - production
+  script:
+    - docker run -v $CI_PROJECT_DIR/apks:/usr/src/app/apks --name mobile-build-production --env CMD_SCRIPT=bundle.build.sh <image-name>
+    - sudo chown -R gitlab-runner:gitlab-runner $CI_PROJECT_DIR/apks
+    - sudo cp -r $CI_PROJECT_DIR/apks/app-release.apk /apks/app-release.apk
+  artifacts:
+    paths:
+      - apks/app-release.apk
+  only:
+    refs:
+      - master
+  cache:
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
+  when: manual
+
+docker-clean-job:
+  stage: docker-clean
+  tags:
+    - debug
+    - production
+  script:
+    - docker system prune -a -f
+    - exit 0
+  when: always
