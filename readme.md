@@ -15,7 +15,7 @@ docker build -t <image-name> -f ./dockerfiles/android.Dockerfile .
 ```
 
 The command must be lounched on the root of you Capacitor app and assumes a folder /dockerfiles.
-Then run it providing the path to a shell script containing the Capacitor commands to build the app.
+Then run it providing the path to a shell script containing the Capacitor commands to build the app. You can find 3 examples in the root of this repository.
 
 ```bash
 docker run --env CMD_SCRIPT=<path-to-your-build-script> <image-name>
